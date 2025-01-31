@@ -64,7 +64,7 @@ In "Quotes" tab, access all past quotes and download with the Download PDF butto
 
 
 
-## Setup
+## Optional Setup
 
 1. Install dependencies:
 ```bash
