@@ -2,55 +2,52 @@
 
 A web-based quoting tool for Codeium products integrated with Salesforce.
 
-## Added Functionality:
-- Admin Panel to add more units, change discount rates, etc.
-- Ability to save quotes as a PDF
-- Account-Based Discounts
-- Different Account Types (Admin, Enterprise, Student..)
-- Search functionality for units
-- Feature Tagging/Search for units
-- Merges identical units in the quote/prevents duplicate unit selections
-- Maintains selected units when filtering/searching
-- Feature-based filtering
-- Autocomplete unit selection
-- Clear discount visibility
+## Added Functionality
 
-### Salesforce Integration:
-- Connected to test Salesforce instance
-- OAuth2 authentication
+- **Admin Panel** to add more units, change discount rates, etc.
+- Ability to **save quotes as a PDF**.
+- **Account-Based Discounts**.
+- Different **Account Types** (Admin, Enterprise, Student…).
+- **Search** functionality for units.
+- **Feature Tagging/Search** for units.
+- Merges identical units in the quote (prevents duplicate unit selections).
+- Maintains selected units when filtering/searching.
+- **Feature-based filtering**.
+- **Autocomplete** unit selection.
+- Clear discount visibility.
+- **Salesforce Integration**:
+  - Connected to test Salesforce instance
+  - OAuth2 authentication
 
-## How to Use:
+## How to Use
 
-Visit https://quoting-tool-en2jdfp7q-austin-manns-projects.vercel.app/ 
-Use Admin Login Displayed on Screen
+Visit [Quoting Tool](https://quoting-tool-en2jdfp7q-austin-manns-projects.vercel.app/)  
+- Use the **Admin Login** displayed on screen
 
-### Specify Discounts:
-1. Click on Admin Panel
-2. Click on Discounts
-3. Click on Pencil under Actions
-4. Adjust Based on Current Discount Rate
-5. Click on Units
-6. Click Pencil icon under Status
-7. Apply discounts or adjust Unit attributes as needed
-8. Click Save Changes
-	
-### Create a Quote:
-1. In "New Quote" tab Enter quote name
-2. Search for and products using the dropdown
-3. Specify quantities
-4. Discounts apply automatically based on:
-   - Account Type
-   - Unit Specific Discount
+### Specify Discounts
+
+1. **Click on Admin Panel**  
+2. **Click on Discounts**  
+   - Click on the Pencil icon under **Actions**  
+     - Adjust based on the current discount rate
+3. **Click on Units**  
+   - Click on the Pencil icon under **Status**  
+     - Apply discounts or adjust Unit attributes as needed  
+     - Click **Save Changes**
+
+### Create a Quote
+
+1. In the **"New Quote"** tab, enter a quote name  
+2. Search for products using the dropdown  
+3. Specify quantities  
+4. Discounts apply automatically based on:  
+   - Account Type  
+   - Unit-Specific Discount  
    - Number of units selected
 
-### Save Quote:
-In "Quotes" tab, access all past quotes and download with the Download PDF button
-## Features
+### Save Quote
 
-- Calculate quotes for Various Units
-- Volume-based discounts (10% off for orders of 100+ units)
-- Demo mode with localStorage persistence
-- Salesforce integration (with demo fallback)
+- In the **"Quotes"** tab, access all past quotes and download them with the **Download PDF** button
 
 
 
@@ -127,6 +124,12 @@ const handleUnitChange = (productId: string, value: string) => {
   // Triggers recalculation
 };
 ```
+## Features
+
+- Calculate quotes for Various Units
+- Volume-based discounts (10% off for orders of 100+ units)
+- Demo mode with localStorage persistence
+- Salesforce integration (with demo fallback)
 
 #### Performance Optimizations
 - Debounced calculations (50ms delay)
