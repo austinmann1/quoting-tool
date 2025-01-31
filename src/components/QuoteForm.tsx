@@ -22,14 +22,12 @@ import {
   MenuItem,
   IconButton,
   Autocomplete,
-  Chip,
-  InputAdornment
+  Chip
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import Search from '@mui/icons-material/Search'; // Fix SearchIcon import
 import { configurationService } from '../services/configuration';
-import { quoteService } from '../services/quotes'; // Import quoteService
+import { quoteService } from '../services/quotes';
 
 interface QuoteFormProps {
   // onSubmit: (quote: any) => void; // Update onSubmit type
@@ -73,7 +71,6 @@ export const QuoteForm: React.FC = () => {
   const [discountRules, setDiscountRules] = useState<DiscountRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [availableFeatures, setAvailableFeatures] = useState<string[]>([]);
   const [quoteName, setQuoteName] = useState('');
@@ -81,7 +78,6 @@ export const QuoteForm: React.FC = () => {
   // Reset form state when component mounts
   useEffect(() => {
     setItems([]);
-    setSearchQuery('');
     setSelectedFeatures([]);
     setError(null);
     setQuoteName('');
@@ -123,34 +119,21 @@ export const QuoteForm: React.FC = () => {
   const handleAddItem = () => {
     if (units.length === 0) return;
 
-    const defaultUnit = units[0];
-    const existingItemIndex = items.findIndex(item => item.unitId === defaultUnit.id);
-
-    if (existingItemIndex !== -1) {
-      // If item already exists, update its quantity
-      const newItems = [...items];
-      const existingItem = { ...newItems[existingItemIndex] };
-      existingItem.quantity += 1;
-      existingItem.displayQuantity = existingItem.quantity.toString();
-      
-      // Recalculate total with new quantity
-      calculateItemTotal(existingItem).then(({ total, appliedDiscount }) => {
-        existingItem.total = total;
-        existingItem.discount = appliedDiscount;
-        newItems[existingItemIndex] = existingItem;
-        setItems(newItems);
-      });
-    } else {
-      // Add new item
-      setItems(prev => [...prev, {
-        unitId: defaultUnit.id,
-        quantity: 1,
-        displayQuantity: '1',
-        basePrice: defaultUnit.basePrice,
-        discount: 0,
-        total: defaultUnit.basePrice
-      }]);
+    // Get the first unit that isn't already in the items list
+    const availableUnit = units.find(unit => !items.some(item => item.unitId === unit.id));
+    if (!availableUnit) {
+      console.log('Debug - All units are already in the quote');
+      return;
     }
+
+    setItems(prev => [...prev, {
+      unitId: availableUnit.id,
+      quantity: 1,
+      displayQuantity: '1',
+      basePrice: availableUnit.basePrice,
+      discount: 0,
+      total: availableUnit.basePrice
+    }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -194,43 +177,51 @@ export const QuoteForm: React.FC = () => {
       const existingItemIndex = items.findIndex((item, i) => i !== index && item.unitId === value);
       
       if (existingItemIndex !== -1) {
-        // Merge quantities with existing item
-        const existingItem = { ...items[existingItemIndex] };
-        existingItem.quantity += item.quantity;
-        existingItem.displayQuantity = existingItem.quantity.toString();
-        
-        // Recalculate total for merged item
-        const { total, appliedDiscount } = await calculateItemTotal(existingItem);
-        existingItem.total = total;
-        existingItem.discount = appliedDiscount;
-        
-        // Update items array: update existing item and remove the current one
-        newItems[existingItemIndex] = existingItem;
+        // Remove the current row and focus the existing item
         newItems.splice(index, 1);
-      } else {
-        // Just update the unit as before
-        item.unitId = value;
-        item.basePrice = unit.basePrice;
-        item.quantity = 1;
-        item.displayQuantity = '1';
+        setItems(newItems);
         
-        const { total, appliedDiscount } = await calculateItemTotal(item);
-        item.total = total;
-        item.discount = appliedDiscount;
-        
-        newItems[index] = item;
+        // Focus the existing item (you'll need to add a ref to the quantity input)
+        const quantityInput = document.querySelector(`input[name="quantity-${existingItemIndex}"]`);
+        if (quantityInput instanceof HTMLInputElement) {
+          quantityInput.focus();
+          quantityInput.select();
+        }
+        return;
       }
-    } else if (field === 'quantity') {
-      item.quantity = Math.max(1, parseInt(value) || 1);
-      item.displayQuantity = value.toString();
-      
+
+      // Update to new unit
+      item.unitId = value;
+      item.basePrice = unit.basePrice;
       const { total, appliedDiscount } = await calculateItemTotal(item);
       item.total = total;
       item.discount = appliedDiscount;
-      
-      newItems[index] = item;
     }
 
+    if (field === 'quantity' || field === 'displayQuantity') {
+      if (field === 'displayQuantity') {
+        item.displayQuantity = value;
+        // Only update quantity if the display value is a valid number
+        const newQuantity = parseInt(value);
+        if (!isNaN(newQuantity)) {
+          item.quantity = newQuantity;
+        } else {
+          // Keep the old quantity if the new value is invalid
+          item.displayQuantity = item.quantity.toString();
+        }
+      } else {
+        item.quantity = value;
+        item.displayQuantity = value.toString();
+      }
+
+      // Recalculate total when quantity changes
+      const { total, appliedDiscount } = await calculateItemTotal(item);
+      item.total = total;
+      item.discount = appliedDiscount;
+    }
+
+    // Update the item
+    newItems[index] = item;
     setItems(newItems);
   };
 
@@ -315,18 +306,26 @@ export const QuoteForm: React.FC = () => {
     }
   };
 
-  // Filter units based on search query and selected features
-  const filteredUnits = units.filter(unit => {
-    // Always show units that are currently selected in the quote
-    if (items.some(item => item.unitId === unit.id)) {
-      return true;
-    }
+  // Add this function to filter units based on features
+  const getFilteredUnits = useCallback(() => {
+    return units.filter(unit => {
+      // If no features are selected, show all units
+      if (selectedFeatures.length === 0) return true;
+      
+      // Unit must have all selected features
+      return selectedFeatures.every(feature => unit.features.includes(feature));
+    });
+  }, [units, selectedFeatures]);
 
-    const matchesSearch = unit.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFeatures = selectedFeatures.length === 0 || 
-      selectedFeatures.every(feature => unit.features.includes(feature));
-    return matchesSearch && matchesFeatures;
-  });
+  // Add this handler for feature selection
+  const handleFeatureToggle = (feature: string) => {
+    setSelectedFeatures(prev => {
+      const isSelected = prev.includes(feature);
+      return isSelected 
+        ? prev.filter(f => f !== feature)
+        : [...prev, feature];
+    });
+  };
 
   if (loading) {
     return (
@@ -358,48 +357,20 @@ export const QuoteForm: React.FC = () => {
         />
 
         <Box sx={{ mb: 3 }}>
-          <TextField
-            fullWidth
-            label="Search Units"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ mb: 2 }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <Autocomplete
-            multiple
-            options={availableFeatures}
-            value={selectedFeatures}
-            onChange={(_, newValue) => setSelectedFeatures(newValue)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Filter by Features"
-                placeholder="Select features"
+          <Typography variant="h6" gutterBottom>
+            Filter Products
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {availableFeatures.map((feature) => (
+              <Chip
+                key={feature}
+                label={feature}
+                onClick={() => handleFeatureToggle(feature)}
+                color={selectedFeatures.includes(feature) ? 'primary' : 'default'}
+                variant={selectedFeatures.includes(feature) ? 'filled' : 'outlined'}
               />
-            )}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => {
-                const { key, ...chipProps } = getTagProps({ index });
-                return (
-                  <Chip
-                    key={key}
-                    {...chipProps}
-                    label={option}
-                    color="primary"
-                    variant="outlined"
-                  />
-                );
-              })
-            }
-          />
+            ))}
+          </Box>
         </Box>
 
         <TableContainer>
@@ -420,49 +391,59 @@ export const QuoteForm: React.FC = () => {
                 return (
                   <TableRow key={index}>
                     <TableCell>
-                      <FormControl fullWidth size="small">
-                        <Select
-                          value={item.unitId}
-                          onChange={(e) => handleItemChange(index, 'unitId', e.target.value)}
-                        >
-                          {filteredUnits.map((unit) => (
-                            <MenuItem key={unit.id} value={unit.id}>
+                      <FormControl fullWidth>
+                        <Autocomplete
+                          value={unit || null}
+                          onChange={(_, newValue) => {
+                            handleItemChange(index, 'unitId', newValue?.id);
+                          }}
+                          options={getFilteredUnits().filter(u => 
+                            // Don't show units that are already in other rows
+                            !items.some((item, i) => i !== index && item.unitId === u.id)
+                          )}
+                          getOptionLabel={(option) => option.name}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Product"
+                              variant="outlined"
+                            />
+                          )}
+                          renderOption={(props, option) => (
+                            <Box component="li" {...props}>
                               <Box>
-                                <Typography>{unit.name}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Features: {unit.features.join(', ')}
+                                <Typography variant="body1">{option.name}</Typography>
+                                <Typography variant="caption" color="textSecondary">
+                                  Features: {option.features.join(', ')}
                                 </Typography>
                               </Box>
-                            </MenuItem>
-                          ))}
-                        </Select>
+                            </Box>
+                          )}
+                          autoComplete
+                          includeInputInList
+                          filterSelectedOptions
+                          freeSolo={false}
+                        />
                       </FormControl>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell>
                       <TextField
-                        label="Quantity"
                         type="number"
-                        value={item.displayQuantity || item.quantity.toString()}
-                        onChange={(e) => handleQuantityChange(index, e.target.value)}
-                        inputProps={{ min: 0 }}
-                        sx={{ width: 120 }}
+                        value={item.displayQuantity}
+                        name={`quantity-${index}`}
+                        onChange={(e) => handleItemChange(index, 'displayQuantity', e.target.value)}
+                        InputProps={{
+                          inputProps: { min: 1 }
+                        }}
                       />
                     </TableCell>
-                    <TableCell align="right">
-                      ${item.basePrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell align="right">
+                    <TableCell>${item.basePrice.toFixed(2)}</TableCell>
+                    <TableCell>
                       {item.discount > 0 ? `${item.discount}%` : 'No discount'}
                     </TableCell>
-                    <TableCell align="right">
-                      ${item.total.toFixed(2)}
-                    </TableCell>
+                    <TableCell>${item.total.toFixed(2)}</TableCell>
                     <TableCell>
-                      <IconButton 
-                        onClick={() => handleRemoveItem(index)}
-                        size="small"
-                        color="error"
-                      >
+                      <IconButton onClick={() => handleRemoveItem(index)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>

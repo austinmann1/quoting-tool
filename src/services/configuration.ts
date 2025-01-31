@@ -78,10 +78,7 @@ class ConfigurationService {
   private salesforceDiscountRules: DiscountRule[] = [];
 
   constructor() {
-    // Reset demo data to ensure we have the latest values
-    this.resetDemoData();
-    
-    // Initialize demo data if none exists
+    // Only initialize demo data if none exists
     if (!localStorage.getItem(DEMO_PRICING_KEY)) {
       this.setDemoPricingRules([
         {
@@ -181,45 +178,17 @@ class ConfigurationService {
   }
 
   private getDemoDiscountRules(): DiscountRule[] {
+    console.log('Debug - Getting demo discount rules from localStorage');
     const rulesJson = localStorage.getItem(DEMO_DISCOUNTS_KEY);
-    if (!rulesJson) {
-      const initialRules = [{
-        id: 'student-discount',
-        name: 'Student Discount',
-        type: 'ACCOUNT_TYPE',
-        threshold: 0,
-        discountPercentage: 50,
-        effectiveDate: new Date().toISOString(),
-        accountType: 'STUDENT',
-        applicableUnits: []
-      }];
-      localStorage.setItem(DEMO_DISCOUNTS_KEY, JSON.stringify(initialRules));
-      return initialRules;
-    }
-    return JSON.parse(rulesJson);
+    const rules = rulesJson ? JSON.parse(rulesJson) : [];
+    console.log('Debug - Demo discount rules:', rules);
+    return rules;
   }
 
   private setDemoDiscountRules(rules: DiscountRule[]) {
-    // Ensure we're not storing duplicates and all fields are properly formatted
-    const uniqueRules = rules.reduce((acc: DiscountRule[], rule) => {
-      const existingIndex = acc.findIndex(r => r.id === rule.id);
-      if (existingIndex === -1) {
-        // Ensure all required fields are present and properly formatted
-        const formattedRule = {
-          ...rule,
-          type: rule.type,
-          threshold: rule.threshold || 0,
-          discountPercentage: rule.discountPercentage || 0,
-          effectiveDate: rule.effectiveDate || new Date().toISOString(),
-          applicableUnits: rule.applicableUnits || []
-        };
-        acc.push(formattedRule);
-      }
-      return acc;
-    }, []);
-    
-    localStorage.setItem(DEMO_DISCOUNTS_KEY, JSON.stringify(uniqueRules));
-    this.demoDiscountRules = uniqueRules;
+    console.log('Debug - Setting demo discount rules:', rules);
+    localStorage.setItem(DEMO_DISCOUNTS_KEY, JSON.stringify(rules));
+    this.demoDiscountRules = rules;
   }
 
   private getDemoUnits(): Unit[] {
@@ -340,8 +309,11 @@ class ConfigurationService {
   }
 
   async getDiscountRules(): Promise<DiscountRule[]> {
+    console.log('Debug - Getting discount rules');
     if (this.isDemoMode) {
-      return this.getDemoDiscountRules();
+      const rules = this.getDemoDiscountRules();
+      console.log('Debug - Retrieved discount rules:', rules);
+      return rules;
     }
 
     try {
@@ -371,15 +343,17 @@ class ConfigurationService {
 
   async createDiscountRule(rule: Omit<DiscountRule, 'id'>): Promise<DiscountRule> {
     if (this.isDemoMode) {
+      const rules = this.getDemoDiscountRules();
       const newRule: DiscountRule = {
         ...rule,
-        id: `discount${Math.random().toString(36).substring(7)}`,
+        id: `${rule.type.toLowerCase()}-${Date.now()}`,
         effectiveDate: new Date().toISOString(),
-        type: rule.type.toUpperCase() as DiscountRule['type']
+        // No endDate by default
       };
-      this.demoDiscountRules = this.getDemoDiscountRules();
-      this.demoDiscountRules.push(newRule);
-      this.setDemoDiscountRules(this.demoDiscountRules);
+
+      console.log('Debug - Creating new discount rule:', newRule);
+      rules.push(newRule);
+      this.setDemoDiscountRules(rules);
       return newRule;
     }
 
@@ -422,65 +396,69 @@ class ConfigurationService {
     }
   }
 
-  async updateDiscountRule(id: string, updates: Partial<DiscountRule>): Promise<DiscountRule> {
+  async updateDiscountRule(ruleId: string, updates: Partial<DiscountRule>): Promise<void> {
     if (this.isDemoMode) {
       const rules = this.getDemoDiscountRules();
-      const index = rules.findIndex(r => r.id === id);
+      const index = rules.findIndex(r => r.id === ruleId);
       
-      if (index === -1) {
-        throw new Error('Discount rule not found');
-      }
-
-      // Update the existing rule
-      const updatedRule = {
-        ...rules[index],
-        ...updates,
-        type: updates.type ? updates.type.toUpperCase() as DiscountRule['type'] : rules[index].type
-      };
-
-      // Replace the old rule with the updated one
-      rules[index] = updatedRule;
-      
-      // Save changes
-      this.setDemoDiscountRules(rules);
-
-      return updatedRule;
-    }
-
-    try {
-      if (this.apiBaseUrl) {
-        return await this.fetchFromApi<DiscountRule>(`/discount-rules/${id}`, {
-          method: 'PUT',
-          body: JSON.stringify(updates)
-        });
-      }
-
-      // Fallback to Salesforce
-      const result = await salesforceService.update('DiscountRule__c', id, {
-        Name: updates.name,
-        Type__c: updates.type,
-        Threshold__c: updates.threshold,
-        DiscountPercentage__c: updates.discountPercentage,
-        Region__c: updates.region,
-        CustomerType__c: updates.customerType,
-        Tier__c: updates.tier
+      console.log('Debug - Updating discount rule:', {
+        ruleId,
+        updates,
+        existingRule: index !== -1 ? rules[index] : null
       });
 
-      return {
-        id: result.Id,
-        name: result.Name,
-        type: result.Type__c,
-        threshold: result.Threshold__c,
-        discountPercentage: result.DiscountPercentage__c,
-        effectiveDate: result.EffectiveDate__c,
-        endDate: result.EndDate__c,
-        region: result.Region__c,
-        customerType: result.CustomerType__c,
-        tier: result.Tier__c
-      };
-    } catch (err) {
-      console.error('Error updating discount rule:', err);
-      throw err;
+      if (index !== -1) {
+        // Update the rule directly, preserving the ID and effectiveDate
+        rules[index] = {
+          ...rules[index],
+          ...updates,
+          id: ruleId,
+          effectiveDate: rules[index].effectiveDate, // Keep original effectiveDate
+          endDate: undefined // Remove any endDate
+        };
+
+        // Update the rule list
+        this.setDemoDiscountRules(rules);
+        
+        // Update units based on the applicableUnits in the discount rule
+        const units = this.getDemoUnits();
+        const updatedUnits = units.map(unit => {
+          // Remove this discount from all units first
+          unit.applicableDiscounts = unit.applicableDiscounts?.filter(id => id !== ruleId) || [];
+          
+          // Add the discount back only if this unit is in the applicableUnits list
+          if (rules[index].applicableUnits?.includes(unit.id)) {
+            unit.applicableDiscounts.push(ruleId);
+          }
+          return unit;
+        });
+        this.setDemoUnits(updatedUnits);
+      }
+    } else {
+      try {
+        // Try external pricing API first
+        if (this.apiBaseUrl) {
+          await this.fetchFromApi(`/discount-rules/${ruleId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(updates)
+          });
+          return;
+        }
+
+        // Fallback to Salesforce
+        await salesforceService.update('DiscountRule__c', ruleId, {
+          Name: updates.name,
+          Type__c: updates.type,
+          Threshold__c: updates.threshold,
+          DiscountPercentage__c: updates.discountPercentage,
+          Region__c: updates.region,
+          CustomerType__c: updates.customerType,
+          Tier__c: updates.tier
+        });
+      } catch (err) {
+        console.error('Error updating discount rule:', err);
+        throw err;
+      }
     }
   }
 
@@ -607,20 +585,7 @@ class ConfigurationService {
       const units = this.getDemoUnits();
       const index = units.findIndex(u => u.id === id);
       
-      // If this is a default unit (codeium-enterprise or cascade), only allow status updates
-      const isDefaultUnit = ['codeium-enterprise', 'cascade'].includes(id);
-      if (isDefaultUnit) {
-        const updatedUnit = {
-          ...units[index],
-          active: updates.active ?? units[index].active,
-          updatedAt: new Date().toISOString()
-        };
-        units[index] = updatedUnit;
-        this.setDemoUnits(units);
-        return updatedUnit;
-      }
-      
-      // For non-default units, allow all updates
+      // Update the unit directly
       const updatedUnit = {
         ...units[index],
         ...updates,
@@ -685,19 +650,40 @@ class ConfigurationService {
     const now = new Date().toISOString();
     const currentUser = authService.getCurrentSession();
     const accountType = currentUser?.accountType || 'INDIVIDUAL';
+    const unit = this.getDemoUnits().find(u => u.id === unitId);
     
     console.log('Debug - Checking discounts:', {
       currentUser,
       accountType,
       units,
       unitId,
-      totalRules: rules.length
+      totalRules: rules.length,
+      now,
+      unitApplicableDiscounts: unit?.applicableDiscounts
     });
     
     const applicableRules = rules
       .filter(r => {
+        // First check if this discount is applicable to this unit
+        if (unit?.applicableDiscounts && !unit.applicableDiscounts.includes(r.id)) {
+          console.log('Debug - Rule not in unit applicableDiscounts:', {
+            ruleId: r.id,
+            unitApplicableDiscounts: unit.applicableDiscounts
+          });
+          return false;
+        }
+
         // Check if the rule is currently effective
-        if (r.effectiveDate > now || (r.endDate && r.endDate <= now)) {
+        const isEffective = r.effectiveDate <= now && (!r.endDate || r.endDate > now);
+        console.log('Debug - Rule effectiveness check:', {
+          rule: r,
+          effectiveDate: r.effectiveDate,
+          endDate: r.endDate,
+          now,
+          isEffective
+        });
+
+        if (!isEffective) {
           console.log('Debug - Rule not effective:', r);
           return false;
         }
@@ -715,13 +701,15 @@ class ConfigurationService {
         }
 
         // Check volume-based discounts
-        if (r.type === 'VOLUME' && units >= r.threshold) {
-          console.log('Debug - Volume discount applies:', {
+        if (r.type === 'VOLUME') {
+          const isApplicable = units >= r.threshold;
+          console.log('Debug - Volume discount check:', {
             ruleType: r.type,
             threshold: r.threshold,
-            units
+            units,
+            isApplicable
           });
-          return true;
+          return isApplicable;
         }
 
         // Special discounts are always checked
@@ -803,14 +791,29 @@ class ConfigurationService {
       }
 
       // Add new rule
-      rules.push({
+      const newRule = {
         ...rules[index],
         ...updates,
         id: ruleId,
         effectiveDate: new Date().toISOString()
-      });
+      };
+      rules.push(newRule);
 
+      // Update the rule and ensure all units have this discount in their applicableDiscounts
       this.setDemoDiscountRules(rules);
+      
+      // Update units to include this discount if not already present
+      const units = this.getDemoUnits();
+      const updatedUnits = units.map(unit => {
+        if (!unit.applicableDiscounts) {
+          unit.applicableDiscounts = [];
+        }
+        if (!unit.applicableDiscounts.includes(ruleId)) {
+          unit.applicableDiscounts.push(ruleId);
+        }
+        return unit;
+      });
+      this.setDemoUnits(updatedUnits);
     } else {
       try {
         // Try external pricing API first
@@ -867,92 +870,102 @@ class ConfigurationService {
   }
 
   resetDemoData() {
-    localStorage.removeItem(DEMO_PRICING_KEY);
-    localStorage.removeItem(DEMO_DISCOUNTS_KEY);
-    localStorage.removeItem(DEMO_UNITS_KEY);
+    console.log('Debug - Starting complete demo data reset');
     
-    // Reset the instance variables
+    // Clear ALL demo data from localStorage
+    localStorage.clear(); // Clear everything to be thorough
+    
+    // Reset all instance variables
     this.demoUnits = null;
     this.demoDiscountRules = null;
-    
-    // Re-initialize with default data
-    if (!localStorage.getItem(DEMO_PRICING_KEY)) {
-      this.setDemoPricingRules([
-        {
-          productId: 'codeium-enterprise',
-          basePrice: 1000,
-          effectiveDate: new Date().toISOString(),
-        },
-        {
-          productId: 'cascade',
-          basePrice: 2000,
-          effectiveDate: new Date().toISOString(),
-        },
-      ]);
-    }
+    this.salesforceDiscountRules = [];
 
-    if (!localStorage.getItem(DEMO_DISCOUNTS_KEY)) {
-      this.setDemoDiscountRules([
-        {
-          id: 'student-discount',
-          name: 'Student Discount',
-          type: 'ACCOUNT_TYPE',
-          threshold: 0,
-          discountPercentage: 50,
-          effectiveDate: new Date().toISOString(),
-          accountType: 'STUDENT',
-          applicableUnits: []
-        },
-        {
-          id: 'startup-discount',
-          name: 'Startup Discount',
-          type: 'ACCOUNT_TYPE',
-          threshold: 0,
-          discountPercentage: 30,
-          effectiveDate: new Date().toISOString(),
-          accountType: 'STARTUP',
-          applicableUnits: []
-        },
-        {
-          id: 'volume-discount',
-          name: 'Volume Discount',
-          type: 'VOLUME',
-          threshold: 100,
-          discountPercentage: 10,
-          effectiveDate: new Date().toISOString(),
-          applicableUnits: []
-        }
-      ]);
-    }
+    // Get current timestamp for all dates
+    const now = new Date().toISOString();
+    console.log('Debug - Using timestamp for all dates:', now);
 
-    if (!localStorage.getItem(DEMO_UNITS_KEY)) {
-      this.setDemoUnits([
-        {
-          id: 'codeium-enterprise',
-          name: 'Codeium Enterprise',
-          description: '',
-          basePrice: 1000,
-          category: 'Enterprise',
-          features: ['AI Code Completion', 'Team Collaboration', 'Advanced Code Generation'],
-          active: true,
-          applicableDiscounts: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'cascade',
-          name: 'Cascade',
-          description: '',
-          basePrice: 2000,
-          category: 'Premium',
-          features: ['AI Code Completion', 'Code Analysis'],
-          active: true,
-          applicableDiscounts: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ]);
-    }
+    // Reset discount rules first
+    const discountRules = [
+      {
+        id: 'student-discount',
+        name: 'Student Discount',
+        type: 'ACCOUNT_TYPE',
+        threshold: 0,
+        discountPercentage: 50,
+        effectiveDate: now,
+        accountType: 'STUDENT',
+        applicableUnits: []
+      },
+      {
+        id: 'startup-discount',
+        name: 'Startup Discount',
+        type: 'ACCOUNT_TYPE',
+        threshold: 0,
+        discountPercentage: 30,
+        effectiveDate: now,
+        accountType: 'STARTUP',
+        applicableUnits: []
+      },
+      {
+        id: 'volume-discount',
+        name: 'Volume Discount',
+        type: 'VOLUME',
+        threshold: 100,
+        discountPercentage: 10,
+        effectiveDate: now,
+        applicableUnits: []
+      }
+    ];
+    console.log('Debug - Setting fresh discount rules:', discountRules);
+    localStorage.setItem(DEMO_DISCOUNTS_KEY, JSON.stringify(discountRules));
+
+    // Reset pricing rules
+    const pricingRules = [
+      {
+        productId: 'codeium-enterprise',
+        basePrice: 1000,
+        effectiveDate: now,
+      },
+      {
+        productId: 'cascade',
+        basePrice: 2000,
+        effectiveDate: now,
+      },
+    ];
+    console.log('Debug - Setting fresh pricing rules:', pricingRules);
+    localStorage.setItem(DEMO_PRICING_KEY, JSON.stringify(pricingRules));
+
+    // Reset units
+    const units = [
+      {
+        id: 'codeium-enterprise',
+        name: 'Codeium Enterprise',
+        description: '',
+        basePrice: 1000,
+        category: 'Enterprise',
+        features: ['AI Code Completion', 'Team Collaboration', 'Advanced Code Generation'],
+        active: true,
+        applicableDiscounts: [],
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: 'cascade',
+        name: 'Cascade',
+        description: '',
+        basePrice: 2000,
+        category: 'Premium',
+        features: ['AI Code Completion', 'Code Analysis'],
+        active: true,
+        applicableDiscounts: [],
+        createdAt: now,
+        updatedAt: now
+      }
+    ];
+    console.log('Debug - Setting fresh units:', units);
+    localStorage.setItem(DEMO_UNITS_KEY, JSON.stringify(units));
+
+    console.log('Debug - Demo data reset complete');
   }
 
   private filterAndPaginateUnits(units: Unit[], params: UnitSearchParams): UnitSearchResult {

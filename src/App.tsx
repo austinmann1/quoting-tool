@@ -8,6 +8,7 @@ import { QuoteForm } from './components/QuoteForm';
 import { QuoteList } from './components/QuoteList';
 import { SalesforceLogin } from './components/SalesforceLogin';
 import { quoteService, Quote } from './services/quotes';
+import { configurationService } from './services/configuration'; // Import configurationService
 
 interface QuoteItem {
   unitId: string;
@@ -129,6 +130,18 @@ function App() {
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
   };
+
+  useEffect(() => {
+    // Don't reset demo data on every app start
+    // configurationService.resetDemoData();
+    
+    // Check if user is authenticated
+    const checkAuth = async () => {
+      const isAuthenticated = await authService.checkAuth();
+      setIsLoggedIn(isAuthenticated);
+    };
+    checkAuth();
+  }, []);
 
   if (error) {
     return (

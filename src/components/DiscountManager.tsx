@@ -67,10 +67,11 @@ export const DiscountManager: React.FC = () => {
     try {
       setLoading(true);
       const rules = await configurationService.getDiscountRules();
+      console.log('Debug - Loaded discount rules:', rules);
       setDiscountRules(rules);
     } catch (err) {
       setError('Failed to load discount rules');
-      console.error(err);
+      console.error('Debug - Error loading discount rules:', err);
     } finally {
       setLoading(false);
     }
@@ -106,12 +107,10 @@ export const DiscountManager: React.FC = () => {
         [field]: value
       };
       
-      // Reset accountType when changing type
       if (field === 'type' && value !== 'ACCOUNT_TYPE') {
         newData.accountType = undefined;
       }
       
-      // Reset threshold when changing type
       if (field === 'type' && value !== 'VOLUME') {
         newData.threshold = 0;
       }
@@ -125,7 +124,11 @@ export const DiscountManager: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Validate form data
+      console.log('Debug - Submitting form data:', {
+        editingRule: editingRule ? { id: editingRule.id, name: editingRule.name } : null,
+        formData
+      });
+
       if (formData.type === 'ACCOUNT_TYPE' && !formData.accountType) {
         setError('Please select an account type');
         return;
@@ -145,10 +148,10 @@ export const DiscountManager: React.FC = () => {
       }
 
       handleCloseDialog();
-      loadDiscountRules();
+      await loadDiscountRules();
     } catch (err) {
       setError('Failed to save discount rule');
-      console.error(err);
+      console.error('Debug - Error saving discount rule:', err);
     } finally {
       setLoading(false);
     }
@@ -197,9 +200,9 @@ export const DiscountManager: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {discountRules.map((rule) => (
+            {discountRules.map((rule, index) => (
               <TableRow 
-                key={rule.id}
+                key={`${rule.id}-${index}`}
                 sx={{
                   bgcolor: rule.type === 'ACCOUNT_TYPE' && 
                           rule.accountType !== authService.getCurrentSession()?.accountType ? 

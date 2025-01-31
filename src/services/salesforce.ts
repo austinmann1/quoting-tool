@@ -87,6 +87,12 @@ class SalesforceService {
         configurationService.getCurrentDiscounts()
       ]);
 
+      console.log('Debug - Calculating quote:', {
+        items,
+        prices,
+        discounts
+      });
+
       // Calculate subtotal
       let subtotal = 0;
       items.forEach((item, index) => {
@@ -100,8 +106,17 @@ class SalesforceService {
       const volumeDiscount = discounts.find(d => 
         d.type === 'VOLUME' && 
         totalUnits >= d.threshold &&
-        !d.endDate // Only use active discounts
+        !d.endDate && // Only use active discounts
+        (!d.applicableUnits || // If no units specified, apply to all
+         d.applicableUnits.length === 0 || // Empty array means apply to all
+         items.some(item => d.applicableUnits?.includes(item.productId))) // Or check if any item is in applicableUnits
       );
+
+      console.log('Debug - Volume discount check:', {
+        totalUnits,
+        volumeDiscount,
+        thresholdMet: volumeDiscount ? totalUnits >= volumeDiscount.threshold : false
+      });
 
       let discountAmount = 0;
       let discountApplied = false;
@@ -111,12 +126,15 @@ class SalesforceService {
         discountApplied = true;
       }
 
-      return {
+      const result = {
         subtotal,
         discountAmount,
         totalAmount: subtotal - discountAmount,
         discountApplied
       };
+
+      console.log('Debug - Quote calculation result:', result);
+      return result;
     } catch (err) {
       console.error('Error calculating quote:', err);
       throw new Error('Failed to calculate quote');
