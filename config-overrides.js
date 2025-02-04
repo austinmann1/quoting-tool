@@ -12,7 +12,8 @@ module.exports = function override(config, env) {
     "process": require.resolve("process/browser"),
     "path": require.resolve("path-browserify"),
     "util": require.resolve("util/"),
-    "querystring": require.resolve("querystring-es3")
+    "querystring": require.resolve("querystring-es3"),
+    "crypto": require.resolve("crypto-browserify")
   };
 
   // Add essential providers
