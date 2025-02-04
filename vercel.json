@@ -19,6 +19,6 @@
     "REACT_APP_SF_LOGIN_URL": "https://test.salesforce.com",
     "REACT_APP_SF_CLIENT_ID": "3MVG91oqviqJKoEEL1kAZ1Xkcvjl57nOmqEo0KIdNy5HNV6_NVRA8Kh.RyCzArJivvqRwpy4v96bIQZ7U7etr",
     "REACT_APP_SF_CLIENT_SECRET": "2231ED945C9C62DC0B1289FDAC402E66FDA8200632F211C5943D1FAFC42A273C",
-    "REACT_APP_SF_REDIRECT_URI": "https://quoting-tool-6pqx6r6em-austin-manns-projects.vercel.app/oauth2/callback"
+    "REACT_APP_SF_REDIRECT_URI": "https://quoting-tool-two.vercel.app/oauth2/callback"
   }
 }
