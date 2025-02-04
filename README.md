@@ -64,9 +64,14 @@ The application includes comprehensive test coverage:
 - `QuoteForm.test.tsx`: Quote creation and editing
 - `AdminPanel.test.tsx`: Administrative functions
 
-## Future Improvements
+### Integration Tests
+- `App.integration.test.tsx`: End-to-end user flows
+- Quote creation with automatic discount application
+- PDF generation and download
+- Admin panel operations
 
-Here's what we're planning to enhance:
+
+## Future Improvements
 
 ### Security & Authentication
 - Replace local auth (credentials stored as plaintext) with Firebase Authentication
@@ -77,11 +82,6 @@ Here's what we're planning to enhance:
   - Connect through a backend API (more secure and allows all users access to the same DB)
 - Alternative: Use Firestore
 
-### Integration Tests
-- `App.integration.test.tsx`: End-to-end user flows
-- Quote creation with automatic discount application
-- PDF generation and download
-- Admin panel operations
 
 Run tests with:
 ```bash
