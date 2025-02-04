@@ -140,11 +140,26 @@ npm start
 
 ## Demo Mode
 
-For testing, use these credentials:
-- Admin: `admin@codeium.com` / `admin123!@#`
-- Regular user: `demo@codeium.com` / `demo123!@#`
+For testing, use these demo accounts:
 
-Demo mode uses local storage and doesn't require Salesforce credentials.
+### Demo Accounts
+
+You can use these accounts to test different user roles:
+
+1. **Demo User (Individual Account)**
+   - Username: demo@codeium.com
+   - Password: demo123!@#
+   - Features: Can view and create quotes
+
+2. **Admin User (Enterprise Account)**
+   - Username: admin@codeium.com
+   - Password: admin123!@#
+   - Features: Full access, including pricing management
+
+3. **Student User (Student Account)**
+   - Username: student@codeium.com
+   - Password: student123!@#
+   - Features: Can view and create quotes, eligible for student discounts
 
 ## Components
 
@@ -199,6 +214,3 @@ const handleUnitChange = (productId: string, value: string) => {
    - Quote is stored (localStorage in demo mode)
    - Form resets
    - Saved quotes list updates
-
-
-

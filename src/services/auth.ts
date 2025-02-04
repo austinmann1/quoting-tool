@@ -38,6 +38,17 @@ class AuthService {
       },
       accountType: 'ENTERPRISE',
     },
+    {
+      username: 'student@codeium.com',
+      password: 'student123!@#',
+      roles: {
+        isAdmin: false,
+        canViewQuotes: true,
+        canCreateQuotes: true,
+        canEditPricing: false,
+      },
+      accountType: 'STUDENT',
+    },
   ];
 
   constructor() {

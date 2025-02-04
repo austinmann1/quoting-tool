@@ -47,7 +47,8 @@ export const LoginForm: React.FC<LoginProps> = ({ onSuccess, onError }) => {
           <Typography variant="body2" align="center" color="textSecondary" sx={{ mb: 3 }}>
             Demo Accounts:<br />
             Admin: admin@codeium.com / admin123!@#<br />
-            User: demo@codeium.com / demo123!@#
+            User: demo@codeium.com / demo123!@#<br />
+            Student: student@codeium.com / student123!@#
           </Typography>
 
           <TextField

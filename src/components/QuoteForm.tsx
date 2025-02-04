@@ -226,11 +226,30 @@ export const QuoteForm: React.FC = () => {
   };
 
   const handleQuantityChange = async (index: number, value: string) => {
-    // Remove leading zeros
-    const cleanValue = value.replace(/^0+/, '') || '0';
+    // Allow empty value or zero
+    if (value === '' || value === '0') {
+      const newItems = [...items];
+      const item = {
+        ...newItems[index],
+        quantity: 0,
+        displayQuantity: value
+      };
+      
+      // Recalculate totals
+      const { total, appliedDiscount } = await calculateItemTotal(item);
+      item.total = total;
+      item.discount = appliedDiscount;
+      
+      newItems[index] = item;
+      setItems(newItems);
+      return;
+    }
+
+    // Remove leading zeros and non-numeric characters
+    const cleanValue = value.replace(/^0+/, '').replace(/[^0-9]/g, '');
     const numericValue = parseInt(cleanValue, 10);
 
-    if (!isNaN(numericValue) && numericValue >= 0) {
+    if (!isNaN(numericValue)) {
       const newItems = [...items];
       const item = {
         ...newItems[index],
@@ -377,11 +396,11 @@ export const QuoteForm: React.FC = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell align="right">Quantity</TableCell>
-                <TableCell align="right">Base Price</TableCell>
-                <TableCell align="right">Applied Discount</TableCell>
-                <TableCell align="right">Total</TableCell>
+                <TableCell style={{ width: '40%' }}>Product</TableCell>
+                <TableCell align="center" style={{ width: '15%' }}>Quantity</TableCell>
+                <TableCell align="center" style={{ width: '15%' }}>Base Price</TableCell>
+                <TableCell align="center" style={{ width: '15%' }}>Applied Discount</TableCell>
+                <TableCell align="center" style={{ width: '15%' }}>Total</TableCell>
                 <TableCell></TableCell>
               </TableRow>
             </TableHead>
@@ -426,22 +445,23 @@ export const QuoteForm: React.FC = () => {
                         />
                       </FormControl>
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                       <TextField
-                        type="number"
+                        type="text"
                         value={item.displayQuantity}
                         name={`quantity-${index}`}
-                        onChange={(e) => handleItemChange(index, 'displayQuantity', e.target.value)}
-                        InputProps={{
-                          inputProps: { min: 1 }
+                        onChange={(e) => handleQuantityChange(index, e.target.value)}
+                        inputProps={{
+                          style: { textAlign: 'center' }
                         }}
+                        sx={{ width: '100px' }}
                       />
                     </TableCell>
-                    <TableCell>${item.basePrice.toFixed(2)}</TableCell>
-                    <TableCell>
+                    <TableCell align="center">${item.basePrice.toFixed(2)}</TableCell>
+                    <TableCell align="center">
                       {item.discount > 0 ? `${item.discount}%` : 'No discount'}
                     </TableCell>
-                    <TableCell>${item.total.toFixed(2)}</TableCell>
+                    <TableCell align="center">${item.total.toFixed(2)}</TableCell>
                     <TableCell>
                       <IconButton onClick={() => handleRemoveItem(index)}>
                         <DeleteIcon />
