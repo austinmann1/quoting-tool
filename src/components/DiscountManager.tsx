@@ -163,7 +163,7 @@ export const DiscountManager: React.FC = () => {
         <Typography variant="h5">Discount Rules</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="body2" color="textSecondary">
-            Your account type: {authService.getCurrentSession()?.accountType || 'Not logged in'}
+            Your account type: {authService.getCurrentUser()?.accountType || 'Not logged in'}
           </Typography>
           <Button
             variant="contained"
@@ -205,7 +205,7 @@ export const DiscountManager: React.FC = () => {
                 key={`${rule.id}-${index}`}
                 sx={{
                   bgcolor: rule.type === 'ACCOUNT_TYPE' && 
-                          rule.accountType !== authService.getCurrentSession()?.accountType ? 
+                          rule.accountType !== authService.getCurrentUser()?.accountType ? 
                           'action.hover' : 'inherit'
                 }}
               >

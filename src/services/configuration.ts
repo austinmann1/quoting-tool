@@ -648,7 +648,7 @@ class ConfigurationService {
   async getApplicableDiscounts(units: number, unitId: string): Promise<DiscountRule[]> {
     const rules = await this.getDiscountRules();
     const now = new Date().toISOString();
-    const currentUser = authService.getCurrentSession();
+    const currentUser = authService.getCurrentUser();
     const accountType = currentUser?.accountType || 'INDIVIDUAL';
     const unit = this.getDemoUnits().find(u => u.id === unitId);
     

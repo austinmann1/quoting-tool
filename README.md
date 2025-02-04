@@ -15,9 +15,12 @@ A web-based quoting tool for Codeium products integrated with Salesforce.
 - **Feature-based filtering**.
 - **Autocomplete** unit selection.
 - Clear discount visibility.
-- **Salesforce Integration**:
-  - Connected to test Salesforce instance
-  - OAuth2 authentication
+- **User Authentication and Access Control**:
+  - Username/password authentication
+  - Role-based access control (Admin vs Regular users)
+  - User-specific quote management
+- **Salesforce Integration** (Beta):
+  - Basic CRUD operations for quotes
 
 ## How to Use:
 
@@ -46,85 +49,102 @@ Use Admin Login Displayed on Screen
 ### Save Quote:
 In "Quotes" tab, access all past quotes and download with the Download PDF button
 
-## Features
-- **Admin Panel** to add more units, change discount rates, etc.
-- Ability to **save quotes as a PDF**.
-- **Account-Based Discounts**.
-- Different **Account Types** (Admin, Enterprise, Student…).
-- **Search** functionality for units.
-- **Feature Tagging/Search** for units.
-- Merges identical units in the quote (prevents duplicate unit selections).
-- Maintains selected units when filtering/searching.
-- **Feature-based filtering**.
-- **Autocomplete** unit selection.
-- Clear discount visibility.
-- **Salesforce Integration**:
-  - Connected to test Salesforce instance
-  - OAuth2 authentication
+## Testing
 
-## How to Use
+The application includes comprehensive test coverage:
 
-Visit [Quoting Tool](https://quoting-tool-en2jdfp7q-austin-manns-projects.vercel.app/)  
-- Use the **Admin Login** displayed on screen
+### Unit Tests
+- `auth.test.ts`: Authentication service and user session management
+- `quotes.test.ts`: Quote creation, retrieval, and calculations
+- `configuration.test.ts`: Discount rules and pricing configuration
 
-### Specify Discounts
+### Component Tests
+- `App.test.tsx`: Core application routing and layout
+- `LoginForm.test.tsx`: User authentication flow
+- `QuoteForm.test.tsx`: Quote creation and editing
+- `AdminPanel.test.tsx`: Administrative functions
 
-1. **Click on Admin Panel**  
-2. **Click on Discounts**  
-   - Click on the Pencil icon under **Actions**  
-     - Adjust based on the current discount rate
-3. **Click on Units**  
-   - Click on the Pencil icon under **Status**  
-     - Apply discounts or adjust Unit attributes as needed  
-     - Click **Save Changes**
+## Future Improvements
 
-### Create a Quote
+Here's what we're planning to enhance:
 
-1. In the **"New Quote"** tab, enter a quote name  
-2. Search for products using the dropdown  
-3. Specify quantities  
-4. Discounts apply automatically based on:  
-   - Account Type  
-   - Unit-Specific Discount  
-   - Number of units selected
+### Security & Authentication
+- Replace local auth (credentials stored as plaintext) with Firebase Authentication
 
-### Save Quote
+### Database & Storage
+- Finish Salesforce integration using either:
+  - OAuth2 for proper secure authentication
+  - Connect through a backend API (more secure and allows all users access to the same DB)
+- Alternative: Use Firestore
 
-- In the **"Quotes"** tab, access all past quotes and download them with the **Download PDF** button
+### Integration Tests
+- `App.integration.test.tsx`: End-to-end user flows
+- Quote creation with automatic discount application
+- PDF generation and download
+- Admin panel operations
 
+Run tests with:
+```bash
+# Run all tests
+npm test
 
+# Run tests with coverage
+npm test -- --coverage
+```
 
+## Storage Options
 
+The application supports two storage options:
 
+### Local Storage (Default)
+By default, the application uses browser local storage to store quotes and configuration. This is perfect for development and testing.
 
+### Salesforce Integration (Beta)
+The application can use Salesforce as a storage backend. Current status:
+- Basic CRUD operations for quotes (create, read, update, delete)
+- Quote storage in custom Salesforce objects
 
+To connect to Salesforce:
 
+1. Configure environment variables:
+```bash
+# Copy example env file
+cp .env.example .env
 
+# Edit .env with your Salesforce credentials
+REACT_APP_STORAGE_TYPE=salesforce
+REACT_APP_SF_LOGIN_URL=your-salesforce-instance
+```
 
+2. Set up Salesforce schema:
+```sql
+-- Required Custom Objects
+Quote__c:
+  - Name (Text)
+  - Total__c (Currency)
+  - Items__c (Long Text Area)
+  - Status__c (Picklist)
+```
 
-
-
-## Optional Setup
+## Development Setup
 
 1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Configure environment variables:
-   - Copy `.env.example` to `.env`
-   - Fill in your Salesforce credentials and configuration
+2. Start development server:
+```bash
+npm start
+```
 
 ## Demo Mode
 
-For testing and development, use these demo credentials:
-- Username: `admin@codeium.com`
-- Password: `admin123!@#`
+For testing, use these credentials:
+- Admin: `admin@codeium.com` / `admin123!@#`
+- Regular user: `demo@codeium.com` / `demo123!@#`
 
-In demo mode:
-- Quotes are stored in localStorage
-- No actual Salesforce connection is required
-- All quote data persists across browser sessions
+Demo mode uses local storage and doesn't require Salesforce credentials.
 
 ## Components
 
@@ -167,38 +187,6 @@ const handleUnitChange = (productId: string, value: string) => {
   // Triggers recalculation
 };
 ```
-## Features
-
-- Calculate quotes for Various Units
-- Volume-based discounts (10% off for orders of 100+ units)
-- Demo mode with localStorage persistence
-- Salesforce integration (with demo fallback)
-
-#### Performance Optimizations
-- Debounced calculations (50ms delay)
-- useRef for latest state tracking
-- Immediate resets for empty fields
-- Input validation to prevent invalid states
-
-### Salesforce Service (`/src/services/salesforce.ts`)
-
-Handles all quote calculations and storage:
-
-#### Demo Mode Implementation
-```typescript
-// Quote Storage
-private getDemoQuotes(): QuoteData[] {
-  return JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || '[]');
-}
-
-// Quote Calculation
-calculateQuote(items: QuoteItem[]): QuoteCalculation {
-  // Calculates subtotal
-  // Applies volume discount (10% for 100+ units)
-  // Returns complete calculation
-}
-```
-
 
 ## Data Flow
 
@@ -211,3 +199,6 @@ calculateQuote(items: QuoteItem[]): QuoteCalculation {
    - Quote is stored (localStorage in demo mode)
    - Form resets
    - Saved quotes list updates
+
+
+

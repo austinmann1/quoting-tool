@@ -148,7 +148,7 @@ export const QuoteList: React.FC = () => {
     discount: quote?.discount || 0,
     total: quote?.total || 0,
     createdAt: quote?.createdAt || new Date().toISOString(),
-    createdBy: quote?.createdBy || 'unknown',
+    createdBy: quote?.createdBy || 'Unknown User',  
     status: quote?.status || 'draft',
     name: quote?.name || 'Untitled Quote'
   })) : [];

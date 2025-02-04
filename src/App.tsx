@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, RouterProvider, createBrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { createTheme, ThemeProvider, CssBaseline, Typography, Container, Box, Tabs, Tab, Button } from '@mui/material';
 import ErrorBoundary from './components/ErrorBoundary';
 import { authService } from './services/auth';
 import { AdminPanel } from './components/AdminPanel';
 import { QuoteForm } from './components/QuoteForm';
 import { QuoteList } from './components/QuoteList';
-import { SalesforceLogin } from './components/SalesforceLogin';
+import { LoginForm } from './components/LoginForm';
 import { quoteService, Quote } from './services/quotes';
 import { configurationService } from './services/configuration'; // Import configurationService
 
@@ -29,7 +29,7 @@ const theme = createTheme({
   },
 });
 
-const AppContent: React.FC = () => {
+const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(() => {
@@ -59,11 +59,6 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    window.location.reload();
-  };
-
   const handleQuoteSubmit = async (quoteData: Omit<Quote, 'id' | 'createdAt' | 'createdBy' | 'status'>) => {
     try {
       await quoteService.createQuote(quoteData);
@@ -89,7 +84,7 @@ const AppContent: React.FC = () => {
             </Box>
             <Button 
               color="inherit" 
-              onClick={handleLogout}
+              onClick={onLogout}
               sx={{ ml: 2 }}
             >
               Logout
@@ -99,23 +94,22 @@ const AppContent: React.FC = () => {
           <Routes>
             <Route 
               path="/new-quote" 
-              element={
-                <QuoteForm 
-                  key={location.pathname} 
-                  onSubmit={handleQuoteSubmit} 
-                />
-              } 
+              element={<QuoteForm onSubmit={handleQuoteSubmit} />} 
             />
-            <Route path="/quotes" element={<QuoteList />} />
             <Route 
-              path="/admin" 
-              element={
-                authService.isAdmin() 
-                  ? <AdminPanel /> 
-                  : <Navigate to="/quotes" replace />
-              } 
+              path="/quotes" 
+              element={<QuoteList />} 
             />
-            <Route path="/" element={<Navigate to="/new-quote" replace />} />
+            {authService.isAdmin() && (
+              <Route 
+                path="/admin" 
+                element={<AdminPanel />} 
+              />
+            )}
+            <Route 
+              path="/" 
+              element={<Navigate to="/new-quote" replace />} 
+            />
           </Routes>
         </Box>
       </ErrorBoundary>
@@ -131,14 +125,20 @@ function App() {
     setIsLoggedIn(true);
   };
 
+  const handleLoginError = (errorMessage: string) => {
+    setError(errorMessage);
+    setIsLoggedIn(false);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsLoggedIn(false);
+  };
+
   useEffect(() => {
-    // Don't reset demo data on every app start
-    // configurationService.resetDemoData();
-    
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      const isAuthenticated = await authService.checkAuth();
-      setIsLoggedIn(isAuthenticated);
+    const checkAuth = () => {
+      const currentUser = authService.getCurrentUser();
+      setIsLoggedIn(currentUser !== null);
     };
     checkAuth();
   }, []);
@@ -152,6 +152,14 @@ function App() {
             Error
           </Typography>
           <Typography variant="body1">{error}</Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => setError(null)} 
+            sx={{ mt: 2 }}
+          >
+            Back to Login
+          </Button>
         </Container>
       </ThemeProvider>
     );
@@ -162,18 +170,42 @@ function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Container maxWidth="sm">
-          <SalesforceLogin onSuccess={handleLoginSuccess} onError={setError} />
+          <LoginForm onSuccess={handleLoginSuccess} onError={setError} />
         </Container>
       </ThemeProvider>
     );
   }
 
+  const router = createBrowserRouter([
+    {
+      path: '*',
+      element: <AppContent onLogout={handleLogout} />,
+      children: [
+        {
+          path: 'new-quote',
+          element: <QuoteForm onSubmit={() => {}} />,
+        },
+        {
+          path: 'quotes',
+          element: <QuoteList />,
+        },
+        {
+          path: 'admin',
+          element: authService.isAdmin() ? <AdminPanel /> : <Navigate to="/new-quote" replace />,
+        },
+      ],
+    },
+  ], {
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true
+    }
+  });
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Router>
-        <AppContent />
-      </Router>
+      <RouterProvider router={router} />
     </ThemeProvider>
   );
 }

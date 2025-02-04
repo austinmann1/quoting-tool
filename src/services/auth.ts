@@ -1,128 +1,139 @@
 import { salesforceService } from './salesforce';
-import { configurationService } from './configuration';
-
-export interface UserRole {
-  isAdmin: boolean;
-  canViewQuotes: boolean;
-  canCreateQuotes: boolean;
-  canEditPricing: boolean;
-}
 
 export interface UserSession {
   userId: string;
   username: string;
-  roles: UserRole;
+  roles: {
+    isAdmin: boolean;
+    canViewQuotes: boolean;
+    canCreateQuotes: boolean;
+    canEditPricing: boolean;
+  };
   isDemoUser: boolean;
-  accountType: 'STUDENT' | 'ENTERPRISE' | 'STARTUP' | 'INDIVIDUAL';
+  accountType: 'INDIVIDUAL' | 'STUDENT' | 'STARTUP' | 'ENTERPRISE';
 }
 
-// Demo mode admin credentials
-const DEMO_ADMIN = {
-  username: 'admin@codeium.com',
-  password: 'admin123!@#',
-};
-
-// Demo mode regular user credentials
-const DEMO_USER = {
-  username: 'example@codeium.com',
-  password: 'demo123!@#',
-};
-
 class AuthService {
-  private currentSession: UserSession | null = null;
+  private currentUser: UserSession | null = null;
+  private readonly predefinedUsers = [
+    {
+      username: 'demo@codeium.com',
+      password: 'demo123!@#',
+      roles: {
+        isAdmin: false,
+        canViewQuotes: true,
+        canCreateQuotes: true,
+        canEditPricing: false,
+      },
+      accountType: 'INDIVIDUAL',
+    },
+    {
+      username: 'admin@codeium.com',
+      password: 'admin123!@#',
+      roles: {
+        isAdmin: true,
+        canViewQuotes: true,
+        canCreateQuotes: true,
+        canEditPricing: true,
+      },
+      accountType: 'ENTERPRISE',
+    },
+  ];
+
+  constructor() {
+    // Load session from localStorage on initialization
+    const savedSession = localStorage.getItem('currentUser');
+    if (savedSession) {
+      try {
+        this.currentUser = JSON.parse(savedSession);
+      } catch (e) {
+        this.currentUser = null;
+        localStorage.removeItem('currentUser');
+      }
+    }
+  }
+
+  private saveSession(session: UserSession | null) {
+    this.currentUser = session;
+    if (session) {
+      localStorage.setItem('currentUser', JSON.stringify(session));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
+  }
 
   async login(username: string, password: string): Promise<UserSession> {
-    // Check for demo credentials
-    const isDemoAdmin = username === DEMO_ADMIN.username && password === DEMO_ADMIN.password;
-    const isDemoUser = username === DEMO_USER.username && password === DEMO_USER.password;
-    
-    if (isDemoAdmin || isDemoUser) {
-      // Set demo mode for all services
-      salesforceService.setDemoMode(true);
-      configurationService.setDemoMode(true);
-
-      this.currentSession = {
-        userId: isDemoAdmin ? 'demo-admin' : 'demo-user',
-        username: username,
-        isDemoUser: true,
-        accountType: isDemoAdmin ? 'ENTERPRISE' : 'INDIVIDUAL',
-        roles: {
-          isAdmin: isDemoAdmin,
-          canViewQuotes: true,
-          canCreateQuotes: true,
-          canEditPricing: isDemoAdmin,
-        },
-      };
-
-      return this.currentSession;
-    }
-
-    // Real Salesforce authentication
     try {
-      // Set services to real mode
-      salesforceService.setDemoMode(false);
-      configurationService.setDemoMode(false);
+      // Check predefined users first
+      const predefinedUser = this.predefinedUsers.find(
+        user => user.username === username && user.password === password
+      );
 
-      // Attempt Salesforce login
-      const success = await salesforceService.login(username, password);
-      
-      if (!success) {
+      if (predefinedUser) {
+        const session: UserSession = {
+          userId: predefinedUser.username,
+          username: predefinedUser.username,
+          roles: predefinedUser.roles,
+          isDemoUser: true,
+          accountType: predefinedUser.accountType,
+        };
+        this.saveSession(session);
+        return session;
+      }
+
+      // Try Salesforce login if not a predefined user
+      const isAuthenticated = await salesforceService.login(username, password);
+      if (!isAuthenticated) {
+        this.saveSession(null);
         throw new Error('Invalid credentials');
       }
 
-      // In a real implementation, we would fetch user permissions from Salesforce
-      // For now, we'll treat all real Salesforce users as regular users
-      this.currentSession = {
-        userId: 'sf-user',
-        username: username,
-        isDemoUser: false,
-        accountType: 'INDIVIDUAL',
+      const session: UserSession = {
+        userId: username,
+        username,
         roles: {
           isAdmin: false,
           canViewQuotes: true,
           canCreateQuotes: true,
           canEditPricing: false,
         },
+        isDemoUser: false,
+        accountType: 'INDIVIDUAL',
       };
 
-      return this.currentSession;
+      this.saveSession(session);
+      return session;
     } catch (err) {
       console.error('Login error:', err);
+      this.saveSession(null);
       throw new Error('Invalid credentials');
     }
   }
 
-  getCurrentSession(): UserSession | null {
-    return this.currentSession;
+  async logout(): Promise<void> {
+    try {
+      if (!this.currentUser?.isDemoUser) {
+        await salesforceService.logout();
+      }
+    } finally {
+      this.saveSession(null);
+    }
   }
 
   getCurrentUser(): UserSession | null {
-    return this.currentSession;
+    return this.currentUser;
   }
 
-  logout() {
-    this.currentSession = null;
+  isAuthenticated(): boolean {
+    return this.currentUser !== null;
   }
 
-  // Helper methods to check permissions
   isAdmin(): boolean {
-    return this.currentSession?.roles.isAdmin || false;
+    return this.currentUser?.roles.isAdmin || false;
   }
 
-  canEditPricing(): boolean {
-    return this.currentSession?.roles.canEditPricing || false;
-  }
-
-  canViewQuotes(): boolean {
-    return this.currentSession?.roles.canViewQuotes || false;
-  }
-
-  canCreateQuotes(): boolean {
-    return this.currentSession?.roles.canCreateQuotes || false;
-  }
-
-  isDemoUser(): boolean {
-    return this.currentSession?.isDemoUser || false;
+  async checkAuth(): Promise<boolean> {
+    return this.isAuthenticated();
   }
 }
 

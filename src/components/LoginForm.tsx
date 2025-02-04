@@ -7,7 +7,7 @@ interface LoginProps {
   onError: (error: string) => void;
 }
 
-export const SalesforceLogin: React.FC<LoginProps> = ({ onSuccess, onError }) => {
+export const LoginForm: React.FC<LoginProps> = ({ onSuccess, onError }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
