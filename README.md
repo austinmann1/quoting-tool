@@ -24,8 +24,8 @@ A web-based quoting tool for Codeium products integrated with Salesforce.
 
 ## How to Use:
 
-Visit https://quoting-tool-two.vercel.app/
-Use Admin Login Displayed on Screen
+- Visit https://quoting-tool-two.vercel.app/
+- Use Admin Login Displayed on Screen
 
 ### Specify Discounts:
 1. Click on Admin Panel
