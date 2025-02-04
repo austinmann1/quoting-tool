@@ -6,7 +6,7 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build",
-        "buildCommand": "npm install --force && npm run build",
+        "buildCommand": "npm install --force && npm run build:ci",
         "installCommand": "npm install --force",
         "framework": "create-react-app"
       }
