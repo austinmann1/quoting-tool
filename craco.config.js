@@ -5,28 +5,26 @@ module.exports = {
     configure: {
       resolve: {
         fallback: {
-          "querystring": require.resolve("querystring-es3"),
-          "buffer": require.resolve("buffer/"),
-          "url": require.resolve("url/"),
           "stream": require.resolve("stream-browserify"),
           "http": require.resolve("stream-http"),
           "https": require.resolve("https-browserify"),
-          "zlib": require.resolve("browserify-zlib"),
-          "path": require.resolve("path-browserify"),
-          "crypto": require.resolve("crypto-browserify"),
-          "util": require.resolve("util/"),
-          "timers": require.resolve("timers-browserify"),
+          "os": require.resolve("os-browserify/browser"),
+          "url": require.resolve("url/"),
+          "buffer": require.resolve("buffer/"),
           "process": require.resolve("process/browser"),
-          "fs": false,
-          "net": false,
-          "tls": false
+          "path": require.resolve("path-browserify"),
+          "util": require.resolve("util/"),
+          "querystring": require.resolve("querystring-es3"),
+          "crypto": require.resolve("crypto-browserify"),
+          "assert": require.resolve("assert/"),
+          "zlib": require.resolve("browserify-zlib")
         }
       },
       plugins: [
         new webpack.ProvidePlugin({
           process: 'process/browser',
-          Buffer: ['buffer', 'Buffer'],
-        }),
+          Buffer: ['buffer', 'Buffer']
+        })
       ]
     }
   }
