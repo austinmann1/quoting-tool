@@ -12,9 +12,6 @@
     "test:coverage": "jest --coverage",
     "eject": "react-scripts eject"
   },
-  "resolutions": {
-    "asn1.js": "^5.4.1"
-  },
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
@@ -26,10 +23,8 @@
     "@types/lodash": "^4.17.15",
     "assert": "^2.1.0",
     "bcryptjs": "^2.4.3",
-    "browserify-zlib": "^0.2.0",
     "buffer": "^6.0.3",
     "cors": "^2.8.5",
-    "crypto-browserify": "^3.12.1",
     "crypto-js": "^4.2.0",
     "csv-parse": "^5.6.0",
     "dotenv": "^16.3.1",
