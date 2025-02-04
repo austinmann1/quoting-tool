@@ -6,7 +6,8 @@ module.exports = function override(config, env) {
     "querystring": require.resolve("querystring-es3"),
     "stream": require.resolve("stream-browserify"),
     "buffer": require.resolve("buffer/"),
-    "timers": require.resolve("timers-browserify")
+    "timers": require.resolve("timers-browserify"),
+    "vm": require.resolve("vm-browserify")
   };
 
   config.plugins = [
