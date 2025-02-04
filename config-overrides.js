@@ -11,7 +11,8 @@ module.exports = function override(config, env) {
     "buffer": require.resolve("buffer/"),
     "process": require.resolve("process/browser"),
     "path": require.resolve("path-browserify"),
-    "util": require.resolve("util/")
+    "util": require.resolve("util/"),
+    "querystring": require.resolve("querystring-es3")
   };
 
   // Add essential providers
